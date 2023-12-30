@@ -4,10 +4,11 @@ import formData from 'form-data';
 import Mailgun from 'mailgun.js';
 import {DynamoDBClient, PutItemCommand} from "@aws-sdk/client-dynamodb";
 
-export const handler = async(event) => {
+const handler = async(event) => {
     try {
         // fetch is available with Node.js 18
         console.log("Event in lambda: ", event)
+        // const sns_message = event
         const sns_message = JSON.stringify(event.records[0].sns.message)
         const image_path = sns_message["image_path"]
         const image_name = sns_message["image_name"]
@@ -73,3 +74,13 @@ const track_email = async (table_name, user_email, message)=>{
         console.log("Error while tracking mail: ", err)
     }
 }
+
+// const data = {
+//     "image_path": "ksd",
+//     "image_name": "asd",
+//     "message": "asd",
+//     "status": true,
+//     "user_email": "mahajanvaibhav5155@gmail.com"
+// }
+//
+// handler(data)
