@@ -4,12 +4,11 @@ import formData from 'form-data';
 import Mailgun from 'mailgun.js';
 import {DynamoDBClient, PutItemCommand} from "@aws-sdk/client-dynamodb";
 
-const handler = async(event) => {
+export const handler = async(event) => {
     try {
         // fetch is available with Node.js 18
         console.log("Event in lambda: ", event)
-        // const sns_message = event
-        const sns_message = JSON.stringify(event.records[0].sns.message)
+        const sns_message = JSON.parse(JSON.parse(JSON.stringify(event.Records[0].Sns.Message)))
         const image_path = sns_message["image_path"]
         const image_name = sns_message["image_name"]
         const user_email = sns_message["user_email"]
@@ -17,16 +16,16 @@ const handler = async(event) => {
         const message = sns_message["message"]
 
         if(status)
-            email("Your file has been uploaded successfully: "+image_name+" at "+image_path, user_email)
+            await email("Your file has been uploaded successfully: "+image_name+" at "+image_path, user_email)
         else
-            email(message, user_email)
+            await email(message, user_email)
     }
     catch (e) {
         console.error(e);
     }
 }
 
-const email = (message, user_email)=>{
+const email = async (message, user_email)=>{
     const API_KEY = process.env.MAILGUN_API_KEY;
     const DOMAIN = process.env.MAILGUN_DOMAIN;
     const SENDER = process.env.MAILGUN_SENDER;
@@ -44,7 +43,7 @@ const email = (message, user_email)=>{
         text: body
     };
 
-    client.messages.create(DOMAIN, messageData)
+    await client.messages.create(DOMAIN, messageData)
         .then((res) => {
             console.log("Email sent successfully to ", user_email);
             track_email(process.env.DYNAMODB_TABLE, user_email, body)
@@ -56,7 +55,7 @@ const email = (message, user_email)=>{
 
 const track_email = async (table_name, user_email, message)=>{
     try{
-        const client = new DynamoDBClient({ region: process.env.AWS_REGION });
+        const client = new DynamoDBClient({ region: process.env.AWS_REG });
         const input = {
             "TableName": table_name,
             "Item": {
