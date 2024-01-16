@@ -8,6 +8,7 @@ export const handler = async(event) => {
     try {
         // fetch is available with Node.js 18
         console.log("Event in lambda: ", event)
+        // const sns_message = event
         const sns_message = JSON.parse(JSON.parse(JSON.stringify(event.Records[0].Sns.Message)))
         const image_path = sns_message["image_path"]
         const image_name = sns_message["image_name"]
@@ -44,9 +45,9 @@ const email = async (message, user_email)=>{
     };
 
     await client.messages.create(DOMAIN, messageData)
-        .then((res) => {
+        .then(async (res) => {
             console.log("Email sent successfully to ", user_email);
-            track_email(process.env.DYNAMODB_TABLE, user_email, body)
+            await track_email(process.env.DYNAMODB_TABLE, user_email, body)
         })
         .catch((err) => {
             console.error("Failed to send email. Error -", err);
@@ -57,12 +58,12 @@ const track_email = async (table_name, user_email, message)=>{
     try{
         const client = new DynamoDBClient({ region: process.env.AWS_REG });
         const input = {
-            "TableName": table_name,
-            "Item": {
-                "id": Date.now(),
-                "UserEmail": user_email,
-                "Timestamp": Date.now(),
-                "Message": message
+            TableName: table_name,
+            Item: {
+                id: {N : Date.now()},
+                UserEmail: {S: user_email},
+                Timestamp: {N: Date.now()},
+                Message: {S: message}
             }
         }
         const command = new PutItemCommand(input);
@@ -71,6 +72,7 @@ const track_email = async (table_name, user_email, message)=>{
     }
     catch(err){
         console.log("Error while tracking mail: ", err)
+        await email(err, user_email)
     }
 }
 
