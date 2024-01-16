@@ -2,6 +2,7 @@ import dotenv from "dotenv"
 dotenv.config()
 import formData from 'form-data';
 import Mailgun from 'mailgun.js';
+// import aws from 'aws-sdk'
 import {DynamoDBClient, PutItemCommand} from "@aws-sdk/client-dynamodb";
 
 export const handler = async(event) => {
@@ -48,10 +49,12 @@ const email = async (message, user_email)=>{
         .then(async (res) => {
             console.log("Email sent successfully to ", user_email);
             await track_email(process.env.DYNAMODB_TABLE, user_email, body)
+            return
         })
         .catch((err) => {
             console.error("Failed to send email. Error -", err);
         });
+    return
 }
 
 const track_email = async (table_name, user_email, message)=>{
@@ -60,19 +63,21 @@ const track_email = async (table_name, user_email, message)=>{
         const input = {
             TableName: table_name,
             Item: {
-                id: {N : Date.now()},
+                id: {N : Date.now().toString()},
                 UserEmail: {S: user_email},
-                Timestamp: {N: Date.now()},
+                Timestamp: {N: Date.now().toString()},
                 Message: {S: message}
             }
         }
         const command = new PutItemCommand(input);
         const response = await client.send(command);
         console.log(response)
+        return
     }
     catch(err){
         console.log("Error while tracking mail: ", err)
         await email(err, user_email)
+        return
     }
 }
 
